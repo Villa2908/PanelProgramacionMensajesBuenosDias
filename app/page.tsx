@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const [phone, setPhone] = useState<string>('');
   const [message, setMessage] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [testingId, setTestingId] = useState<string | null>(null);
 
   // Estados para edición inline
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -65,6 +66,32 @@ export default function DashboardPage() {
       setPhone('');
       setMessage('');
       fetchContacts();
+    }
+  };
+
+  const handleSendTest = async (contact: Contact) => {
+    setTestingId(contact.id);
+    try {
+      const res = await fetch('/api/send-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone_number: contact.phone_number,
+          custom_message: contact.custom_message,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert(`¡Mensaje de prueba enviado con éxito a +${contact.phone_number}!`);
+      } else {
+        alert(`Error al enviar prueba: ${data.error}`);
+      }
+    } catch (err) {
+      alert('Ocurrió un error al intentar comunicar con el servidor de prueba.');
+    } finally {
+      setTestingId(null);
     }
   };
 
@@ -282,6 +309,26 @@ export default function DashboardPage() {
                   >
                     <i className={`bi bi-circle-fill ${c.is_active ? 'text-success' : 'text-secondary'}`} style={{ fontSize: '0.5rem' }}></i>
                     {c.is_active ? 'ACTIVO' : 'PAUSADO'}
+                  </button>
+                  {/* Botón para probar envío */}
+                  <button
+                    type="button"
+                    onClick={() => handleSendTest(c)}
+                    disabled={testingId === c.id}
+                    className="btn btn-outline-success btn-sm d-flex align-items-center gap-1"
+                    title="Probar envío ahora"
+                  >
+                    {testingId === c.id ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span className="d-none d-sm-inline">Enviando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-send-fill"></i>
+                        <span className="d-none d-sm-inline">Probar</span>
+                      </>
+                    )}
                   </button>
 
                   <button
