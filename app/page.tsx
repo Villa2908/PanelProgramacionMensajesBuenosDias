@@ -70,30 +70,42 @@ export default function DashboardPage() {
   };
 
   const handleSendTest = async (contact: Contact) => {
-    setTestingId(contact.id);
-    try {
-      const res = await fetch('/api/send-test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone_number: contact.phone_number,
-          custom_message: contact.custom_message,
-        }),
-      });
+  setTestingId(contact.id);
+  try {
+    const res = await fetch('/api/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone_number: contact.phone_number,
+        custom_message: contact.custom_message,
+      }),
+    });
 
-      const data = await res.json();
-
-      if (res.ok) {
-        alert(`¡Mensaje de prueba enviado con éxito a +${contact.phone_number}!`);
-      } else {
-        alert(`Error al enviar prueba: ${data.error}`);
-      }
-    } catch (err) {
-      alert('Ocurrió un error al intentar comunicar con el servidor de prueba.');
-    } finally {
-      setTestingId(null);
+    // 1. Intentar obtener la respuesta de forma segura
+    let data: any = {};
+    const contentType = res.headers.get('content-type');
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await res.json();
+    } else {
+      const textError = await res.text();
+      console.error('Respuesta no-JSON recibida:', textError);
+      data = { error: `Servidor devolvió respuesta HTTP ${res.status}` };
     }
-  };
+
+    // 2. Mostrar resultado según el estado
+    if (res.ok && data.success) {
+      alert(`¡Mensaje de prueba enviado con éxito a +${contact.phone_number}!`);
+    } else {
+      alert(`Error al enviar prueba (${res.status}): ${data.error || 'Error desconocido'}`);
+    }
+  } catch (err: any) {
+    console.error('Error en fetch:', err);
+    alert(`Error de red o cliente: ${err.message || 'No se pudo completar la solicitud'}`);
+  } finally {
+    setTestingId(null);
+  }
+};
 
   const toggleStatus = async (id: string, currentStatus: boolean) => {
     if (!supabase) return;
